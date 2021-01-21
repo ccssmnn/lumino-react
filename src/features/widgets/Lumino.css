@@ -1,0 +1,78 @@
+@import "../../../node_modules/@lumino/dragdrop/style/index.css";
+@import "../../../node_modules/@lumino/widgets/style/index.css";
+@import "../../../node_modules/@lumino/default-theme/style/commandpalette.css";
+@import "../../../node_modules/@lumino/default-theme/style/datagrid.css";
+@import "../../../node_modules/@lumino/default-theme/style/dockpanel.css";
+@import "../../../node_modules/@lumino/default-theme/style/menu.css";
+@import "../../../node_modules/@lumino/default-theme/style/menubar.css";
+@import "../../../node_modules/@lumino/default-theme/style/scrollbar.css";
+@import "../../../node_modules/@lumino/default-theme/style/tabbar.css";
+
+#menuBar {
+  flex: 0 0 auto;
+}
+
+#main {
+  flex: 1 1 auto;
+  height: calc(100vh - 48px);
+}
+
+#palette {
+  min-width: 300px;
+  border-right: 1px solid #dddddd;
+}
+
+.content {
+  position: relative;
+  min-width: 50px;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border: 1px solid #c0c0c0;
+  border-top: none;
+  background: white;
+}
+
+.p-DockPanel-handle,
+.lm-DockPanel-handle {
+  width: 1px;
+}
+
+.p-TabBar-content,
+.lm-TabBar-content {
+  border: 1px solid #c0c0c0;
+  background: rgba(243, 244, 246);
+}
+.p-TabBar-tab,
+.lm-TabBar-tab {
+  background: rgba(243, 244, 246);
+  min-height: 22px;
+  max-height: 22px;
+}
+
+.p-TabBar-tab.p-mod-current,
+.lm-tabBar-tab.lm-mod-current {
+  min-height: 24px;
+  max-height: 24px;
+  transform: translate(-1px, 1px);
+  background: white;
+}
+
+.p-TabBar-tab.p-mod-closable > .p-TabBar-tabCloseIcon:before,
+.lm-TabBar-tab.lm-mod-closable > .lm-TabBar-tabCloseIcon:before {
+  border-radius: 100%;
+  width: 1rem;
+  height: 1rem;
+  content: "X";
+  cursor: pointer;
+}
+
+.p-DockPanel-overlay,
+.lm-DockPanel-overlay {
+  border: none;
+  background: rgba(132, 196, 255, 0.6);
+  transition-property: top, left, right, bottom;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
