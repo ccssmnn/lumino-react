@@ -15,11 +15,14 @@ import Incrementor from "../counter/Incrementor";
 import Decrementor from "../counter/Decrementor";
 import "./Lumino.css";
 
+/**
+ * LuminoWidget allows us to fire custom events to the HTMLElement that is holding all
+ * the widgets. This approach handles the plumbing between Lumino and React/Redux
+ */
 class LuminoWidget extends Widget {
-  name: string;
-  closable: boolean;
-  widgetIds: string[];
-  mainRef: HTMLDivElement;
+  name: string; // will be displayed in the tab
+  closable: boolean; // make disable closing on some widgets if you want
+  mainRef: HTMLDivElement; // reference to the element holding the widgets to fire events
   constructor(
     id: string,
     name: string,
@@ -28,7 +31,6 @@ class LuminoWidget extends Widget {
   ) {
     super({ node: LuminoWidget.createNode(id) });
 
-    this.widgetIds = [];
     this.id = id;
     this.name = name;
     this.mainRef = mainRef;
@@ -37,7 +39,7 @@ class LuminoWidget extends Widget {
     this.setFlag(Widget.Flag.DisallowLayout);
     this.addClass("content");
 
-    this.title.label = name;
+    this.title.label = name; // this sets the tab name
     this.title.closable = closable;
   }
 
@@ -47,18 +49,34 @@ class LuminoWidget extends Widget {
     return div;
   }
 
+  /**
+   * this event is triggered when we click on the tab of a widget
+   */
   onActivateRequest(msg: any) {
-    const event = new CustomEvent("lumino:activated", this._getEventDetails());
+    // create custom event
+    const event = new CustomEvent("lumino:activated", this.getEventDetails());
+    // fire custom event to parent element
     this.mainRef?.dispatchEvent(event);
+    // continue with normal Widget behaviour
     super.onActivateRequest(msg);
   }
 
+  /**
+   * this event is triggered when the user clicks the close button
+   */
   onCloseRequest(msg: any) {
-    const event = new CustomEvent("lumino:deleted", this._getEventDetails());
+    // create custom event
+    const event = new CustomEvent("lumino:deleted", this.getEventDetails());
+    // fire custom event to parent element
     this.mainRef?.dispatchEvent(event);
+    // continue with normal Widget behaviour
     super.onCloseRequest(msg);
   }
-  _getEventDetails(): LuminoEvent {
+
+  /**
+   * creates a LuminoEvent holding name/id to properly handle them in react/redux
+   */
+  private getEventDetails(): LuminoEvent {
     return {
       detail: {
         id: this.id,
@@ -69,17 +87,29 @@ class LuminoWidget extends Widget {
   }
 }
 
+/**
+ * This is the type of the custom event we use to communicate from lumino to react/redux
+ */
 export interface LuminoEvent {
   detail: { id: string; name: string; closable: boolean };
 }
 
+/**
+ * Props of any component that will be rendered inside a LuminoWidget
+ */
 export interface ReactWidgetProps {
   id: string;
   name: string;
 }
 
+/**
+ * Type of any component that will be rendered inside a LuminoWidget
+ */
 export type ReactWidget = React.FC<ReactWidgetProps>;
 
+/**
+ * Method to return the component corresponding to the widgettype
+ */
 const getComponent = (type: AppWidgetType): ReactWidget => {
   switch (type) {
     case "WATCHER":
@@ -93,16 +123,25 @@ const getComponent = (type: AppWidgetType): ReactWidget => {
   }
 };
 
+/**
+ * Initialize Boxpanel and Dockpanel globally once to handle future calls
+ */
 const main = new BoxPanel({ direction: "left-to-right", spacing: 0 });
 const dock = new DockPanel();
 
+/**
+ * This component watches the widgets redux state and draws them
+ */
 const Lumino: React.FC = () => {
-  const [attached, setAttached] = useState(false);
-  const mainRef = useRef<HTMLDivElement>(null);
-  const [renderedWidgetIds, setRenderedWidgetIds] = useState<string[]>([]);
-  const widgets = useSelector(selectWidgets);
+  const [attached, setAttached] = useState(false); // avoid attaching DockPanel and BoxPanel twice
+  const mainRef = useRef<HTMLDivElement>(null); // reference for Element holding our Widgets
+  const [renderedWidgetIds, setRenderedWidgetIds] = useState<string[]>([]); // tracker of components that have been rendered with LuminoWidget already
+  const widgets = useSelector(selectWidgets); // widgetsState
   const dispatch = useAppDispatch();
 
+  /**
+   * creates a LuminoWidget and adds it to the DockPanel. Id of widget is added to renderedWidgets
+   */
   const addWidget = useCallback((w: AppWidget) => {
     if (mainRef.current === null) return;
     setRenderedWidgetIds((cur) => [...cur, w.id]);
@@ -110,16 +149,21 @@ const Lumino: React.FC = () => {
     dock.addWidget(lum);
   }, []);
 
-  // add widgets to dock
+  /**
+   * watch widgets state and calls addWidget for Each. After addWidget is executed we look
+   * for the element in the DOM and use React to render the Component into the widget
+   * NOTE: We need to use Provider in order to access the Redux State inside the widgets.
+   */
   useEffect(() => {
     if (!attached) return;
     widgets.forEach((w) => {
-      if (renderedWidgetIds.includes(w.id)) return;
-      addWidget(w);
-      const el = document.getElementById(w.id);
-      const Component = getComponent(w.type);
+      if (renderedWidgetIds.includes(w.id)) return; // avoid drawing widgets twice
+      addWidget(w); // addWidget to DOM
+      const el = document.getElementById(w.id); // get DIV
+      const Component = getComponent(w.type); // get Component for TYPE
       if (el) {
         ReactDOM.render(
+          // draw Component into Lumino DIV
           <Provider store={store}>
             <Component id={w.id} name={w.tabTitle} />
           </Provider>,
@@ -129,7 +173,10 @@ const Lumino: React.FC = () => {
     });
   }, [widgets, attached, addWidget, renderedWidgetIds]);
 
-  // attach lumino dock to main component
+  /**
+   * This effect initializes the BoxPanel and the Dockpanel and adds event listeners
+   * to dispatch proper Redux Actions for our custom events
+   */
   useEffect(() => {
     if (mainRef.current === null || attached === true) {
       return;
@@ -142,21 +189,19 @@ const Lumino: React.FC = () => {
     Widget.attach(main, mainRef.current);
     setAttached(true);
     main.addWidget(dock);
+    // dispatch activated action
     mainRef.current.addEventListener("lumino:activated", (e: Event) => {
       const le = (e as unknown) as LuminoEvent;
       dispatch(activateWidget(le.detail.id));
     });
+    // dispatch deleted action
     mainRef.current.addEventListener("lumino:deleted", (e: Event) => {
       const le = (e as unknown) as LuminoEvent;
       dispatch(deleteWidget(le.detail.id));
     });
   }, [mainRef, attached, dispatch]);
 
-  return (
-    <div id="workflow-panel">
-      <div ref={mainRef} className={"main"}></div>
-    </div>
-  );
+  return <div ref={mainRef} className={"main"} />;
 };
 
 export default Lumino;

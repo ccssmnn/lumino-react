@@ -1,24 +1,36 @@
 import { nanoid, PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "../../app/store";
 
+/**
+ * Types of Widgets for this counter example
+ */
 export type AppWidgetType = "INCREMENTOR" | "DECREMENTOR" | "WATCHER";
+
 export interface AppWidget {
   type: AppWidgetType;
   id: string;
   tabTitle: string;
   active: boolean;
 }
-
+/**
+ * State that holds the widget information
+ */
 export interface WidgetsState {
   widgets: AppWidget[];
 }
 
+/**
+ * Draw one Watcher initially
+ */
 const initialState: WidgetsState = {
   widgets: [
     { type: "WATCHER", id: nanoid(), tabTitle: "Watcher", active: true },
   ],
 };
 
+/**
+ * create a slice for handling basic widget actions: add, delete, activate
+ */
 export const widgetsSlice = createSlice({
   name: "widgets",
   initialState,
@@ -41,6 +53,9 @@ export const widgetsSlice = createSlice({
 // export actions
 export const { addWidget, deleteWidget, activateWidget } = widgetsSlice.actions;
 
+/**
+ * shorthand for adding an incrementor
+ */
 export const addIncrementor = () =>
   addWidget({
     id: nanoid(),
@@ -49,6 +64,9 @@ export const addIncrementor = () =>
     type: "INCREMENTOR",
   });
 
+/**
+ * shorthand for adding a decrementor
+ */
 export const addDecrementor = () =>
   addWidget({
     id: nanoid(),
@@ -57,6 +75,9 @@ export const addDecrementor = () =>
     type: "DECREMENTOR",
   });
 
+/**
+ * shorthand for adding a watcher
+ */
 export const addWatcher = () =>
   addWidget({
     id: nanoid(),
@@ -65,7 +86,9 @@ export const addWatcher = () =>
     type: "WATCHER",
   });
 
-// selector for widgets
+/**
+ * selector for the widgets
+ */
 export const selectWidgets = (state: RootState) => state.widgets.widgets;
 
 export default widgetsSlice.reducer;
